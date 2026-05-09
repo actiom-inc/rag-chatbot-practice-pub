@@ -1,10 +1,124 @@
 <main class="shell">
-  <section class="panel" aria-labelledby="page-title">
-    <p class="label">Backend response</p>
-    <h1 id="page-title">RAG Chatbot Practice</h1>
-    <p class="message">{{ message() }}</p>
-    @if (error()) {
-      <p class="error">{{ error() }}</p>
-    }
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">RAG Chatbot Practice</p>
+      <h1>PDF RAG Workspace</h1>
+    </div>
+    <button type="button" class="ghost" (click)="loadDocuments()">更新</button>
+  </header>
+
+  <section class="grid" aria-label="RAG controls">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>PDF学習</h2>
+        @if (isLoadingDocuments()) {
+          <span class="muted">読み込み中</span>
+        }
+      </div>
+
+      <div class="upload-row">
+        <input
+          id="pdf-file"
+          type="file"
+          accept="application/pdf,.pdf"
+          (change)="onFileSelected($event)"
+        />
+        <button
+          type="button"
+          [disabled]="isUploading() || !selectedFile()"
+          (click)="uploadDocument()"
+        >
+          {{ isUploading() ? '学習中' : 'アップロード' }}
+        </button>
+      </div>
+
+      @if (selectedFile()) {
+        <p class="file-note">
+          {{ selectedFile()?.name }} / {{ formatBytes(selectedFile()?.size ?? 0) }}
+        </p>
+      }
+
+      @if (documentError()) {
+        <p class="error">{{ documentError() }}</p>
+      }
+
+      <div class="document-list">
+        @for (document of documents(); track document.id) {
+          <article class="document-card">
+            <div>
+              <div class="document-title">{{ document.filename }}</div>
+              <div class="meta">
+                {{ formatBytes(document.fileSize) }} / {{ document.chunkCount }} chunks /
+                {{ formatDate(document.createdAt) }}
+              </div>
+              @if (document.errorMessage) {
+                <p class="error compact">{{ document.errorMessage }}</p>
+              }
+            </div>
+            <div class="document-actions">
+              <span
+                class="status"
+                [class.completed]="document.status === 'completed'"
+                [class.processing]="document.status === 'processing'"
+                [class.failed]="document.status === 'failed'"
+              >
+                {{ statusLabel(document.status) }}
+              </span>
+              <button type="button" class="ghost danger" (click)="deleteDocument(document.id)">
+                削除
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <p class="empty">学習済みPDFはありません。</p>
+        }
+      </div>
+    </section>
+
+    <section class="panel chat-panel">
+      <div class="panel-head">
+        <h2>チャット</h2>
+        <label class="topk">
+          topK
+          <input type="number" min="1" max="20" [(ngModel)]="topK" />
+        </label>
+      </div>
+
+      <textarea
+        rows="6"
+        [(ngModel)]="chatMessage"
+        placeholder="質問を入力"
+      ></textarea>
+
+      <button type="button" [disabled]="isSending()" (click)="sendChat()">
+        {{ isSending() ? '送信中' : '送信' }}
+      </button>
+
+      @if (chatError()) {
+        <p class="error">{{ chatError() }}</p>
+      }
+
+      @if (chatResponse()) {
+        <section class="answer">
+          <h3>回答</h3>
+          <p>{{ chatResponse()?.answer }}</p>
+        </section>
+
+        <section class="sources">
+          <h3>参照元</h3>
+          @for (source of chatResponse()?.sources; track source.documentId + '-' + source.chunkIndex) {
+            <article class="source-card">
+              <div class="source-head">
+                <strong>{{ source.filename }}</strong>
+                <span>{{ pageLabel(source) }} / 類似度 {{ percent(source.similarity) }}</span>
+              </div>
+              <p>{{ source.contentPreview }}</p>
+            </article>
+          } @empty {
+            <p class="empty">参照元はありません。</p>
+          }
+        </section>
+      }
+    </section>
   </section>
 </main>
