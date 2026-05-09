@@ -1,0 +1,10 @@
+<main class="shell">
+  <section class="panel" aria-labelledby="page-title">
+    <p class="label">Backend response</p>
+    <h1 id="page-title">RAG Chatbot Practice</h1>
+    <p class="message">{{ message() }}</p>
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+  </section>
+</main>
